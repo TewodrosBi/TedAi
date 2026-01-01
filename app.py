@@ -3,100 +3,86 @@ import os
 import datetime
 from groq import Groq
 
-# 1. PAGE CONFIGURATION 🎨
+# 1. PAGE SETUP (Wide & Professional)
 st.set_page_config(
     page_title="Ethio-Brain 🇪🇹",
     page_icon="🇪🇹",
     layout="wide"
 )
 
-# 2. SIDEBAR SETTINGS ⚙️
+# 2. SIDEBAR CONTROLS
 with st.sidebar:
-    st.header("⚙️ Settings")
+    st.title("🇪🇹 Ethio-Brain Settings")
     
-    # Feature 1: Model Selection (In case 70B is too slow, you can switch back)
+    # POWER SWITCH: Defaulting to Llama 3.3 (The Latest)
     model_option = st.selectbox(
-        "Choose Brain Power:",
+        "🧠 Brain Engine:",
         ("llama-3.3-70b-versatile", "llama-3.1-8b-instant"),
-        index=0,
-        help="70B is Smarter. 8B is Faster."
+        index=0, # Defaults to the 70B (Smartest) model
+        help="Llama 3.3 is the latest & smartest. 3.1 is faster."
     )
     
-    # Feature 2: Creativity Slider
+    # CREATIVITY KNOB
     creativity = st.slider(
-        "Creativity Level:", 
-        min_value=0.0, 
-        max_value=1.0, 
-        value=0.7,
-        help="0.0 is strict/logical. 1.0 is creative/random."
+        "🎨 Creativity:", 
+        0.0, 1.0, 0.6,
+        help="Higher = More Creative. Lower = More Logical."
     )
     
-    # Feature 3: Clear History Button
-    if st.button("🗑️ Clear Conversation", type="primary"):
+    # RESET BUTTON
+    if st.button("🗑️ Reset Chat", type="primary"):
         st.session_state.messages = []
         st.rerun()
-
+    
+    # STATUS INDICATORS
     st.markdown("---")
-    st.caption("Created by **Tedbirhanu**")
-    st.caption("Powered by **Groq**")
+    st.success(f"⚡ Online: {model_option}")
+    st.caption(f"📅 Server Time: {datetime.datetime.now().strftime('%H:%M')}")
 
-# 3. MAIN INTERFACE 🇪🇹
+# 3. MAIN TITLE
 st.title("Ethio-Brain 🇪🇹")
-st.markdown("#### The Smartest Ethiopian AI Assistant")
+st.markdown("#### The Advanced AI Assistant | Powered by Llama 3.3")
 
-# Feature 4: Time Awareness ⏰
-current_time = datetime.datetime.now().strftime("%A, %B %d, %Y")
-
-# 4. SETUP GROQ CLIENT
+# 4. CONNECT TO GROQ
 try:
     api_key = st.secrets["GROQ_API_KEY"]
+    client = Groq(api_key=api_key)
 except:
-    st.error("❌ Error: GROQ_API_KEY is missing in Secrets!")
+    st.error("❌ Error: API Key missing in Streamlit Secrets!")
     st.stop()
 
-client = Groq(api_key=api_key)
+# 5. DYNAMIC TIME INJECTION ⏰
+# This captures the EXACT current time/date every time you hit enter.
+current_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+current_time = datetime.datetime.now().strftime("%I:%M %p")
 
-# 5. INITIALIZE HISTORY
+system_instruction = f"""
+You are 'Ethio-Brain', the most advanced Ethiopian AI.
+
+LIVE DATA:
+- Today's Date: {current_date}
+- Current Time: {current_time}
+
+YOUR IDENTITY:
+1. Creator: You were created by Tedbirhanu. (Never say Meta or Groq).
+2. Heritage: You are proud of Ethiopia 🇪🇹.
+3. Capabilities: Expert in Python, React Native, and General Knowledge.
+
+BEHAVIOR:
+- Be concise but intelligent.
+- If asked about the date/time, use the 'LIVE DATA' above.
+"""
+
+# 6. MEMORY MANAGEMENT
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Update System Prompt Dynamically (to keep time current)
-system_prompt = {
-    "role": "system",
-    "content": f"""
-    You are 'Ethio-Brain', a highly advanced AI created by Tedbirhanu.
-    
-    CONTEXT:
-    - Current Date: {current_time}
-    
-    IDENTITY RULES:
-    1. If asked 'Who made you?', answer EXACTLY: 'I was created by Tedbirhanu.'
-    2. You are proud of your Ethiopian heritage. 🇪🇹
-    3. You are an Expert Senior Developer (Python, React Native, Streamlit).
-    4. You are helpful, kind, and intelligent.
-    """
-}
-
-# 6. FEATURE: QUICK ACTION BUTTONS ⚡
-# Only show these if chat is empty
-if len(st.session_state.messages) == 0:
-    col1, col2, col3 = st.columns(3)
-    if col1.button("🇪🇹 Ethiopian Fact"):
-        st.session_state.messages.append({"role": "user", "content": "Tell me an interesting fact about Ethiopia."})
-        st.rerun()
-    if col2.button("🐍 Write Python Code"):
-        st.session_state.messages.append({"role": "user", "content": "Write a simple Python script to calculate Fibonacci numbers."})
-        st.rerun()
-    if col3.button("😂 Tell a Joke"):
-        st.session_state.messages.append({"role": "user", "content": "Tell me a funny joke!"})
-        st.rerun()
-
-# 7. DISPLAY CHAT HISTORY
+# 7. DISPLAY CHAT
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 8. GENERATOR FUNCTION (Clean Output) 🧼
+# 8. RESPONSE CLEANER (Removes raw JSON junk)
 def generate_chat_responses(chat_completion):
     for chunk in chat_completion:
         if chunk.choices[0].delta.content:
@@ -104,21 +90,22 @@ def generate_chat_responses(chat_completion):
 
 # 9. CHAT LOGIC
 if prompt := st.chat_input("Ask me anything..."):
-    # Add User Message
+    
+    # Show User Message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Prepare Messages (System Prompt + History)
-    full_messages = [system_prompt] + st.session_state.messages
+    # Build the Brain Packet (System + History)
+    full_messages = [{"role": "system", "content": system_instruction}] + st.session_state.messages
 
-    # Generate Response
+    # Generate Smart Response
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
-                model=model_option, # Uses the slider selection
+                model=model_option,
                 messages=full_messages,
-                temperature=creativity, # Uses the slider selection
+                temperature=creativity,
                 stream=True,
                 max_tokens=1024
             )
@@ -126,4 +113,4 @@ if prompt := st.chat_input("Ask me anything..."):
             st.session_state.messages.append({"role": "assistant", "content": response})
             
         except Exception as e:
-            st.error(f"⚠️ Error: {str(e)}")
+            st.error(f"⚠️ Network Error: {str(e)}")
